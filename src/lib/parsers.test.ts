@@ -144,3 +144,50 @@ describe('categorising', () => {
       .toEqual({ categoryId: 9, source: 'learned' })
   })
 })
+
+// Made-up statements in the layouts other SA banks export (see /samples).
+import capitecCsv from '../../samples/capitec.csv?raw'
+import standardBankCsv from '../../samples/standard-bank.csv?raw'
+import absaCsv from '../../samples/absa.csv?raw'
+import nedbankCsv from '../../samples/nedbank.csv?raw'
+import otherOfx from '../../samples/other-bank.ofx?raw'
+
+describe('other banks', () => {
+  it('Capitec CSV: money in/out columns, fees on the same row, no repeated description', () => {
+    const r = parseCsv(capitecCsv)
+    expect(r.transactions.map((t) => t.amount)).toEqual([-845.2, -510, 18500, -199])
+    expect(r.transactions[0]).toMatchObject({ date: '2026-10-01', description: 'Checkers Hyper Fourways' })
+  })
+
+  it('Standard Bank CSV: headerless, skips record types and balance lines', () => {
+    const r = parseCsv(standardBankCsv)
+    expect(r.transactions).toHaveLength(4)
+    expect(r.transactions[0]).toMatchObject({ date: '2026-10-02', amount: -412.35, description: 'POS PURCHASE WOOLWORTHS ROSEBANK' })
+    expect(r.transactions[2].amount).toBe(21000)
+  })
+
+  it('ABSA CSV: a Value Date column is not mistaken for the amount', () => {
+    const r = parseCsv(absaCsv)
+    expect(r.transactions.map((t) => t.amount)).toEqual([-632.1, -900, 19800, -549])
+    expect(r.transactions[0].date).toBe('2026-10-02')
+    expect(r.accountName).toBe('Account ••4567')
+  })
+
+  it('Nedbank CSV: semicolons, comma decimals, debit/credit, opening balance skipped', () => {
+    const r = parseCsv(nedbankCsv)
+    expect(r.transactions.map((t) => t.amount)).toEqual([-312.45, -87, 16000])
+    expect(r.transactions[0].date).toBe('2026-10-03')
+  })
+
+  it('OFX 2 (XML) from another bank', () => {
+    const r = parseOfx(otherOfx)
+    expect(r.transactions.map((t) => t.amount)).toEqual([-455.6, -1100, 22000])
+    expect(r.transactions[0].description).toBe('WOOLWORTHS FOOD Card purchase')
+    expect(r.accountName).toBe('Account ••5678')
+  })
+
+  it('reads comma decimals over a thousand', () => {
+    expect(parseAmount('16000,00')).toBe(16000)
+    expect(parseAmount('1.234,56')).toBe(1234.56)
+  })
+})

@@ -48,7 +48,7 @@ export function parseAmount(raw: string): number | null {
   if (s.endsWith('-')) { sign = -sign; s = s.slice(0, -1) }
   s = s.replace(/[\s ]/g, '')
   // "1.234,56" style: comma is the decimal mark.
-  if (/^-?\d{1,3}(\.\d{3})*,\d{2}$/.test(s)) s = s.replace(/\./g, '').replace(',', '.')
+  if (/^[-+]?(\d{1,3}(\.\d{3})*|\d+),\d{2}$/.test(s)) s = s.replace(/\./g, '').replace(',', '.')
   else s = s.replace(/,/g, '')
   if (!/^[-+]?\d+(\.\d+)?$/.test(s)) return null
   return sign * parseFloat(s)

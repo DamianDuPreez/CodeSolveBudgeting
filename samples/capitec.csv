@@ -1,0 +1,5 @@
+Nr,Account,Posting Date,Transaction Date,Description,Original Description,Parent Category,Category,Money In,Money Out,Fee,Balance
+1,1000123456,2026-10-02,2026-10-01,Checkers Hyper,Checkers Hyper Fourways,Food,Groceries,,-845.20,,4154.80
+2,1000123456,2026-10-03,2026-10-03,Cash Withdrawal,ATM Cash Withdrawal Sandton,Cash,Cash,,-500.00,-10.00,3644.80
+3,1000123456,2026-10-25,2026-10-25,Salary,Salary Acme Pty Ltd,Income,Salary,18500.00,,,22144.80
+4,1000123456,2026-10-27,2026-10-27,Netflix,Netflix.com,Entertainment,Subscriptions,,-199.00,,21945.80
