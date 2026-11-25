@@ -24,3 +24,22 @@ npm run dev      # http://localhost:5173
 npm test         # parser and categoriser tests
 npm run build    # static site in dist/, can be hosted free (GitHub Pages, Netlify, Cloudflare Pages)
 ```
+
+## Firebase (hosting, sign-in, database)
+
+The app runs without Firebase: no sign-in, and data stays in the browser. Add the Firebase config to turn on sign-in.
+
+1. In the [Firebase console](https://console.firebase.google.com), create a project (the free Spark plan is enough).
+2. **Authentication → Sign-in method**: enable **Email/Password** and **Google**.
+3. **Firestore Database → Create database**: choose production mode and the `africa-south1` (Johannesburg) region.
+4. **Project settings → General → Your apps → Web app**: register a web app and copy its config into `.env.local` (start from `.env.example`).
+5. Put your project ID in `.firebaserc`, then deploy:
+
+```sh
+npx firebase-tools login
+npx firebase-tools deploy
+```
+
+That command builds the app, then publishes the site and the Firestore security rules (`firestore.rules`). After the first deploy, open **Authentication → Settings → Authorised domains** and check that your hosting domain is listed.
+
+Security rules: each person can read only their own profile. Each household's data can be read only by its members.

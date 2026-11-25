@@ -83,6 +83,44 @@ describe('FNB PDF statement text', () => {
   })
 })
 
+describe('FNB PDF: real statement layout', () => {
+  // Shapes copied from a real FNB "Next Transact" statement (card numbers masked).
+  const lines = [
+    'Statement Period : 14 August 2026 to 14 November 2026',
+    'Opening Balance  389.63Cr',
+    'Date  Bank  Description  Amount  Balance',
+    '15 Aug  POS Purchase Woolworths  ######*9655 13 Aug  152.95  236.68Cr',
+    '24 Aug  FNB App Payment From Inv-#####  10,000.00Cr  10,236.68Cr',
+    '25 Aug  POS Purchase G2A.Com  ######*7016 25 Aug  190.61  10,046.07Cr',
+    '27 Aug  4.92  10,041.15Cr',
+    '27 Aug  POS Purchase 179.00 Netflix.Com  ######*9655 25 Aug  179.00  9,862.15Cr',
+    '07 Sep  POS Purchase 1899.00 Playstation  ######*9655 04 Sep  1,899.00  7,963.15Cr  52.22',
+    'Closing Balance  7,963.15Cr',
+  ]
+  const r = parseStatementLines(lines)
+
+  it('keeps the shop name when the price is printed inside the description', () => {
+    expect(r.transactions[4]).toEqual({
+      date: '2026-08-27', amount: -179, description: 'POS Purchase 179.00 Netflix.Com ######*9655 25 Aug', balance: 9862.15,
+    })
+    expect(normaliseMerchant(r.transactions[4].description)).toBe('NETFLIX COM')
+  })
+
+  it('reads rows FNB prints without text as bank fees', () => {
+    expect(r.transactions[3]).toEqual({ date: '2026-08-27', amount: -4.92, description: 'Bank fee (no description on statement)', balance: 10041.15 })
+    expect(normaliseMerchant(r.transactions[3].description)).toBe('BANK FEE')
+  })
+
+  it('ignores the accrued bank charges column', () => {
+    expect(r.transactions[5]).toMatchObject({ amount: -1899, balance: 7963.15 })
+  })
+
+  it('reads credits and every row', () => {
+    expect(r.transactions).toHaveLength(6)
+    expect(r.transactions[1]).toMatchObject({ amount: 10000, description: 'FNB App Payment From Inv-#####' })
+  })
+})
+
 describe('categorising', () => {
   const byName = new Map([['Groceries', 1], ['Salary', 2], ['Bank fees', 3], ['Clothing', 4], ['Rent & bond', 5]])
 

@@ -1,7 +1,10 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useRef, useState } from 'react'
 import { clearAllData, db, type ImportSummary } from '../lib/db'
+import { isFirebaseConfigured } from '../lib/firebase'
 import { monthLabel } from '../lib/format'
+import { Icon } from './Icon'
+import { StatementInspector } from './StatementInspector'
 
 interface Props {
   busy: boolean
@@ -18,65 +21,79 @@ export function ImportView({ busy, result, error, onFiles, onReview }: Props) {
 
   return (
     <>
-      <div
-        className={`dropzone ${over ? 'active' : ''}`}
-        role="button"
-        tabIndex={0}
-        onClick={() => input.current?.click()}
-        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && input.current?.click()}
-        onDragOver={(e) => { e.preventDefault(); setOver(true) }}
-        onDragLeave={() => setOver(false)}
-        onDrop={(e) => { e.preventDefault(); e.stopPropagation(); setOver(false); onFiles([...e.dataTransfer.files]) }}
-      >
-        <div className="icon">
-          {busy ? <span className="spinner" /> : (
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M12 15V3" /><path d="m7 8 5-5 5 5" /><path d="M20 15v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-4" />
-            </svg>
-          )}
-        </div>
-        <h2>{busy ? 'Reading your statement…' : 'Drop your FNB statement here'}</h2>
-        <p>or click to choose a file. We read it, sort every transaction and update your budget.</p>
-        <div className="formats">PDF statement · CSV · OFX — read on this device, never uploaded</div>
-        <input
-          ref={input}
-          type="file"
-          accept=".pdf,.csv,.ofx,.qfx,.txt"
-          multiple
-          hidden
-          onChange={(e) => { onFiles([...(e.target.files ?? [])]); e.target.value = '' }}
-        />
-      </div>
-
-      {error && <div className="notice" style={{ marginTop: 18 }}>{error}</div>}
-
-      {result && (
-        <div className="card result">
-          <h3>{result.fileName}</h3>
-          <div className="result-stats">
-            <div><b>{result.added}</b><span>new transactions</span></div>
-            <div><b>{result.categorised}</b><span>sorted automatically</span></div>
-            <div><b>{result.added - result.categorised}</b><span>need your review</span></div>
-            {result.skipped > 0 && <div><b>{result.skipped}</b><span>already imported</span></div>}
+      <div className="import-grid">
+        <div>
+          <div
+            className={`dropzone ${over ? 'active' : ''}`}
+            role="button"
+            tabIndex={0}
+            onClick={() => input.current?.click()}
+            onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && input.current?.click()}
+            onDragOver={(e) => { e.preventDefault(); setOver(true) }}
+            onDragLeave={() => setOver(false)}
+            // The app-wide drop handler imports the file; this only resets the highlight.
+            onDrop={() => setOver(false)}
+          >
+            <div className="icon">{busy ? <span className="spinner" /> : <Icon name="upload" size={30} />}</div>
+            <h2>{busy ? 'Reading your statement…' : 'Drop your FNB statement here'}</h2>
+            <p>or click to choose a file. Every transaction is read, sorted into a category and added to your budget.</p>
+            <div className="formats">
+              <span className="chip"><Icon name="file" size={13} /> PDF statement</span>
+              <span className="chip"><Icon name="file" size={13} /> CSV</span>
+              <span className="chip"><Icon name="file" size={13} /> OFX</span>
+            </div>
+            <div className="privacy"><Icon name="lock" size={14} /> {isFirebaseConfigured ? 'The file is read on this device and never uploaded.' : 'Read on this device. Never uploaded.'}</div>
+            <input
+              ref={input}
+              type="file"
+              accept=".pdf,.csv,.ofx,.qfx,.txt"
+              multiple
+              hidden
+              onChange={(e) => { onFiles([...(e.target.files ?? [])]); e.target.value = '' }}
+            />
           </div>
-          {result.warnings.length > 0 && (
-            <ul>{[...new Set(result.warnings)].slice(0, 5).map((w) => <li key={w}>{w}</li>)}</ul>
-          )}
-          {result.months.length > 0 && (
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {result.months.map((m) => (
-                <button key={m} className="btn" onClick={() => onReview(m)}>Review {monthLabel(m)}</button>
-              ))}
+
+          {error && <div className="notice" style={{ marginTop: 22, marginBottom: 0 }}><Icon name="alert" /> {error}</div>}
+
+          {result && (
+            <div className="card result">
+              <div className="result-head">
+                <div className="ok"><Icon name="check" size={20} /></div>
+                <div>
+                  <h3>Statement imported</h3>
+                  <span>{result.fileName}</span>
+                </div>
+              </div>
+              <div className="result-stats">
+                <div><b>{result.added}</b><span>New transactions</span></div>
+                <div><b>{result.categorised}</b><span>Sorted automatically</span></div>
+                <div><b>{result.added - result.categorised}</b><span>Need your review</span></div>
+                {result.updated > 0 && <div><b>{result.updated}</b><span>Shop names improved</span></div>}
+                {result.skipped > 0 && <div><b>{result.skipped}</b><span>Already imported</span></div>}
+              </div>
+              {result.warnings.length > 0 && (
+                <ul>{[...new Set(result.warnings)].slice(0, 5).map((w) => <li key={w}>{w}</li>)}</ul>
+              )}
+              {result.months.length > 0 && (
+                <div className="actions">
+                  {result.months.map((m) => (
+                    <button key={m} className="btn" onClick={() => onReview(m)}>Review {monthLabel(m)}</button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
-      )}
 
-      <div className="help">
-        <div className="card"><b>Best: PDF statement</b>FNB app or Online Banking → Accounts → Statements → download the PDF.</div>
-        <div className="card"><b>Also works: CSV or OFX</b>Online Banking → your account → Transaction history → Download.</div>
-        <div className="card"><b>It learns</b>Fix a category once and every future transaction from that shop is sorted for you.</div>
+        <div className="card steps">
+          <h2>Getting your statement</h2>
+          <div className="step"><span className="n">1</span><div><b>Open the FNB app</b><span>Tap your account, then Statements.</span></div></div>
+          <div className="step"><span className="n">2</span><div><b>Download the PDF</b><span>Pick a month and save or share the PDF to this computer.</span></div></div>
+          <div className="step"><span className="n">3</span><div><b>Drop it here</b><span>Fix a category once and that shop is sorted for you from then on.</span></div></div>
+        </div>
       </div>
+
+      <StatementInspector />
 
       {history && history.length > 0 && (
         <>
@@ -84,20 +101,21 @@ export function ImportView({ busy, result, error, onFiles, onReview }: Props) {
           <div className="card history">
             {history.map((h) => (
               <div className="history-row" key={h.id}>
-                <div>{h.fileName}</div>
-                <div className="num">{h.added} added</div>
-                <div className="num" style={{ color: 'var(--muted)' }}>{new Date(h.importedAt).toLocaleString('en-ZA', { dateStyle: 'medium', timeStyle: 'short' })}</div>
+                <div className="ficon"><Icon name="file" size={17} /></div>
+                <div className="fname">{h.fileName}</div>
+                <div className="num right">{h.added} added</div>
+                <div className="when">{new Date(h.importedAt).toLocaleString('en-ZA', { dateStyle: 'medium', timeStyle: 'short' })}</div>
               </div>
             ))}
           </div>
           <div style={{ marginTop: 14 }}>
             <button
-              className="btn ghost danger"
+              className="btn ghost danger sm"
               onClick={async () => {
-                if (confirm('Delete all transactions, budgets and learned rules from this browser? This cannot be undone.')) await clearAllData()
+                if (confirm(isFirebaseConfigured ? 'Delete all transactions, budgets and learned rules from your account, on every device? This cannot be undone.' : 'Delete all transactions, budgets and learned rules from this browser? This cannot be undone.')) await clearAllData()
               }}
             >
-              Delete all data on this device
+              <Icon name="trash" size={15} /> {isFirebaseConfigured ? 'Delete all my budget data' : 'Delete all data on this device'}
             </button>
           </div>
         </>
